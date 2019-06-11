@@ -1,3 +1,7 @@
 Rails.application.routes.draw do
-  # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
+  get '/test', to: 'sensors#test'
+  get '/register-device', to: 'sensors#register'
+  post '/posty', to: 'sensors#posty'
+  post '/add-cycle', to: 'sensors#add_cycle'
+  resources :sensors
 end
