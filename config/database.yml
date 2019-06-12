@@ -2,9 +2,9 @@ default: &default
   adapter: postgresql
   encoding: unicode
   pool: 5
-  host: localhost
-  username: Harrison
-  password:
+  host: ec2-54-217-225-16.eu-west-1.compute.amazonaws.com
+  username: gvgdxbtbvdocmo
+  password: 8cd53411c2065c3adfc1f7c82239b0c98a517956f759066842da730904963028
 
 development:
   <<: *default

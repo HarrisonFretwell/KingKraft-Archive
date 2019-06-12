@@ -137,7 +137,7 @@ void loop() {
 // Checks if a unique ID is already stored in EEPROM
 bool hasValidID() {
   for(int i = 0; i < 5; i++){
-    if(EEPROM.read(i) != 255){
+    if(EEPROM.get(i) != 255){
       return true;
     }
   }
@@ -146,7 +146,7 @@ bool hasValidID() {
 
 //REFACTOR, needs to work with more than 255 devices
 int getDeviceId(){
-  return EEPROM.read(0);
+  return EEPROM.get(0);
 }
 
 void addCycle(){
@@ -190,10 +190,7 @@ bool registerDevice(){
   int id = doc["id"];
 
   //write id to EEPROM
-  EEPROM.write(0,id);
-  Serial.print("Written to EEPROM at address 0: ");
-  int eRead = EEPROM.read(0);
-  Serial.print(eRead);
+  EEPROM.put(0,id);
   client.stop();
   Serial.println("closing connection");
 }
