@@ -38,7 +38,7 @@ int status = WL_IDLE_STATUS;
 // if you don't want to use DNS (and reduce your sketch size)
 // use the numeric IP instead of the name for the server:
 //IPAddress server(74,125,232,128);  // numeric IP for Google (no DNS)
-char host[] = "bad-mule-51.localtunnel.me";    // name address for Google (using DNS)
+char host[] = "kingkraft.herokuapp.com";    // name address for Google (using DNS)
 
 // Initialize the Ethernet client library
 // with the IP address and port of the server
@@ -48,9 +48,15 @@ double restX;
 double restY;
 double restZ;
 LSM6DS3 myIMU( I2C_MODE, 0x6A );
+void resetEEPROM(){
+  for(int i = 0; i < 100; i++){
+    EEPROM.update(i,255);
+  }
+}
 void setup() {
   //Initialize serial and wait for port to open:
   Serial.begin(9600);
+
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
@@ -106,7 +112,7 @@ void httpRequest (String req){
     Serial.println("Connected to server");
     client.println(req + " HTTP/1.1");
     client.print("Host: ");
-    client.println("bad-mule-51.localtunnel.me");
+    client.println(host);
     client.println("Connection: close");
     client.println();
   }
@@ -137,7 +143,7 @@ void loop() {
 // Checks if a unique ID is already stored in EEPROM
 bool hasValidID() {
   for(int i = 0; i < 5; i++){
-    if(EEPROM.get(i) != 255){
+    if(EEPROM.read(i) != 255){
       return true;
     }
   }
@@ -146,7 +152,9 @@ bool hasValidID() {
 
 //REFACTOR, needs to work with more than 255 devices
 int getDeviceId(){
-  return EEPROM.get(0);
+  int id;
+  EEPROM.get(0,id);
+  return id;
 }
 
 void addCycle(){
