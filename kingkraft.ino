@@ -44,10 +44,9 @@ char host[] = "kingkraft.herokuapp.com";    // name address for Google (using DN
 // with the IP address and port of the server
 // that you want to connect to (port 80 is default for HTTP):
 WiFiClient client;
-double restX;
-double restY;
-double restZ;
 LSM6DS3 myIMU( I2C_MODE, 0x6A );
+//DO more with this later
+LSM6DS3 myIMU2(SPI_MODE, SPIIMU_SS);
 void resetEEPROM(){
   for(int i = 0; i < 100; i++){
     EEPROM.update(i,255);
@@ -56,7 +55,6 @@ void resetEEPROM(){
 void setup() {
   //Initialize serial and wait for port to open:
   Serial.begin(9600);
-
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
@@ -104,20 +102,29 @@ void setup() {
   Serial.println(", is initialised");
 
 }
+// this method makes a HTTP connection to the server:
+void httpRequest(String req) {
+  // close any connection before send a new request.
+  // This will free the socket on the Nina module
+  client.stop();
 
-void httpRequest (String req){
-  Serial.println("HTTP Request: ");
-  Serial.print(req);
+  // if there's a successful connection:
   if (client.connect(host, 80)) {
-    Serial.println("Connected to server");
-    client.println(req + " HTTP/1.1");
+    Serial.println("connecting...");
+    // send the HTTP PUT request:
+
+    client.print(req);
+    client.println(" HTTP/1.1");
     client.print("Host: ");
     client.println(host);
+    client.println("User-Agent: ArduinoWiFi/1.1");
     client.println("Connection: close");
     client.println();
-  }
-  else{
-    Serial.println("Connection failed");
+
+    // note the time that the connection was made:
+  } else {
+    // if you couldn't make a connection:
+    Serial.println("connection failed");
   }
 }
 
@@ -136,7 +143,7 @@ void loop() {
   if(isCycle(mag)){
     Serial.println("Registering cycle");
     addCycle();
-    delay(6000);
+    delay(3000);
   }
 }
 
@@ -160,6 +167,7 @@ int getDeviceId(){
 void addCycle(){
   Serial.println("Adding cycle");
   String id = String(getDeviceId());
+  //String req = "GET /";
   String req = "POST /add-cycle?id=" + id;
   httpRequest(req);
 }
@@ -171,7 +179,6 @@ bool registerDevice(){
   while (client.available() == 0) {
     if (millis() - timeout > 25000) { //Try to fetch response for 25 seconds
       Serial.println(">>> Client Timeout !");
-      client.stop();
       return false;
     }
   }
