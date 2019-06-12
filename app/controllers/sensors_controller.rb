@@ -22,21 +22,25 @@ class SensorsController < ApplicationController
   def edit
   end
   # GET /sensors/test
-  def test
-    puts "Hello there"
-  end
-  def posty
-    puts "posty is here"
-    puts "Here he is #{params[:q]}"
-  end
 
+  # POST /add_cycle
+  # Adds one to cycle for particular sensor
   def add_cycle
-    sensor = Sensor.where(id: params[:id]).first
-    sensor.cycles = sensor.cycles + 1
-    sensor.save
+    result = Sensor.where(id: params[:id])
+    #If sensor exists in table, then just add one to cycles
+    if(result.exists?)
+      sensor = result.first
+      sensor.cycles = sensor.cycles + 1
+      sensor.save
+    else
+      #If sensor does not exist, add it to table
+      sensor = Sensor.new(id: params[:id], cycles: 1)
+      sensor.save
+    end
   end
 
-
+  # GET /register-device
+  # Creates new sensor and returns it as a JSON
   def register
     sensor = Sensor.new(cycles: 0)
     sensor.save
