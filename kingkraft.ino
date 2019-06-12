@@ -26,6 +26,8 @@ by Tom Igoe
 #include <EEPROM.h>
 #include <ArduinoJson.h>
 
+#include "SparkFunLSM6DS3.h"
+#include "Wire.h"
 #include "arduino_secrets.h"
 ///////please enter your sensitive data in the Secret tab/arduino_secrets.h
 char ssid[] = SECRET_SSID;        // your network SSID (name)
@@ -36,18 +38,30 @@ int status = WL_IDLE_STATUS;
 // if you don't want to use DNS (and reduce your sketch size)
 // use the numeric IP instead of the name for the server:
 //IPAddress server(74,125,232,128);  // numeric IP for Google (no DNS)
-String host = "wise-ladybug-16.localtunnel.me";    // name address for Google (using DNS)
+char host[] = "bad-mule-51.localtunnel.me";    // name address for Google (using DNS)
 
 // Initialize the Ethernet client library
 // with the IP address and port of the server
 // that you want to connect to (port 80 is default for HTTP):
 WiFiClient client;
-
+double restX;
+double restY;
+double restZ;
+LSM6DS3 myIMU( I2C_MODE, 0x6A );
 void setup() {
   //Initialize serial and wait for port to open:
   Serial.begin(9600);
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
+  }
+  //Call .begin() to configure the IMUs
+  if( myIMU.begin() != 0 )
+  {
+    Serial.println("Device error");
+  }
+  else
+  {
+    Serial.println("Device OK!");
   }
 
   // check for the WiFi module:
@@ -73,7 +87,6 @@ void setup() {
     delay(10000);
   }
   Serial.println("Connected to wifi");
-  printWifiStatus();
 
   Serial.println("\nStarting connection to server...");
   // if you get a connection, report back via serial:
@@ -83,16 +96,17 @@ void setup() {
   Serial.print("Arduino with id: ");
   Serial.print(getDeviceId());
   Serial.println(", is initialised");
-  addCycle();
 
 }
+
 void httpRequest (String req){
   Serial.println("HTTP Request: ");
   Serial.print(req);
-  if (client.connect("wise-ladybug-16.localtunnel.me", 80)) {
+  if (client.connect(host, 80)) {
     Serial.println("Connected to server");
     client.println(req + " HTTP/1.1");
-    client.println("Host: wise-ladybug-16.localtunnel.me");
+    client.print("Host: ");
+    client.println("bad-mule-51.localtunnel.me");
     client.println("Connection: close");
     client.println();
   }
@@ -100,56 +114,24 @@ void httpRequest (String req){
     Serial.println("Connection failed");
   }
 }
+
+bool isCycle(double mag){
+  return(sqrt(pow(1.0 - mag,2)) > 0.4);
+}
+double x;
+double y;
+double z;
+const double maxError = 0.2;
 void loop() {
-  // if there are incoming bytes available
-  // from the server, read them and print them:
-  /*String json;
-  bool readingJSON = false;
-  while (client.available()) {
-  char c = client.read();
-  if(c == '{'){
-  readingJSON = !readingJSON;
-}
-if(readingJSON){
-json = json + c;
-}
-if(c == '}'){
-readingJSON = !readingJSON;
-}
-Serial.print(c);
-}*/
-
-// if the server's disconnected, stop the client:
-if (!client.connected()) {
-  /*  DynamicJsonDocument doc(24);
-  deserializeJson(doc, json);
-  Serial.print("Id is ");
-  int id = doc["id"];
-  Serial.print(id);*/
-  Serial.println();
-  Serial.println("disconnecting from server.");
-  client.stop();
-
-  // do nothing forevermore:
-  while (true);
-}
-}
-
-void printWifiStatus() {
-  // print the SSID of the network you're attached to:
-  Serial.print("SSID: ");
-  Serial.println(WiFi.SSID());
-
-  // print your board's IP address:
-  IPAddress ip = WiFi.localIP();
-  Serial.print("IP Address: ");
-  Serial.println(ip);
-
-  // print the received signal strength:
-  long rssi = WiFi.RSSI();
-  Serial.print("signal strength (RSSI):");
-  Serial.print(rssi);
-  Serial.println(" dBm");
+  x = myIMU.readFloatAccelX();
+  y = myIMU.readFloatAccelY();
+  z = myIMU.readFloatAccelZ();
+  double mag = sqrt(pow(x,2) + pow(y,2) + pow(z,2));
+  if(isCycle(mag)){
+    Serial.println("Registering cycle");
+    addCycle();
+    delay(6000);
+  }
 }
 
 // Checks if a unique ID is already stored in EEPROM
@@ -168,9 +150,9 @@ int getDeviceId(){
 }
 
 void addCycle(){
-  Serial.println("Addng cycle");
-  int id = getDeviceId();
-  String req = "POST /add-cycle?id=40";
+  Serial.println("Adding cycle");
+  String id = String(getDeviceId());
+  String req = "POST /add-cycle?id=" + id;
   httpRequest(req);
 }
 
@@ -188,32 +170,30 @@ bool registerDevice(){
 
   // Read all the lines of the reply from server and print them to Serial
   String json;
-  while(client.available()){
-    bool readingJSON = false;
-    while (client.available()) {
-      char c = client.read();
-      if(c == '{'){
-        readingJSON = !readingJSON;
-      }
-      if(readingJSON){
-        json = json + c;
-      }
-      if(c == '}'){
-        readingJSON = !readingJSON;
-      }
-      Serial.print(c);
+  bool readingJSON = false;
+  while (client.available()) {
+    char c = client.read();
+    if(c == '{'){
+      readingJSON = !readingJSON;
     }
-    //Convert to json format and extract id
-    DynamicJsonDocument doc(24);
-    deserializeJson(doc, json);
-    int id = doc["id"];
-
-    //write id to EEPROM
-    EEPROM.write(0,id);
-    Serial.print("Written to EEPROM at address 0: ");
-    int eRead = EEPROM.read(0);
-    Serial.print(eRead);
-
-    Serial.println("closing connection");
+    if(readingJSON){
+      json = json + c;
+    }
+    if(c == '}'){
+      readingJSON = !readingJSON;
+    }
+    Serial.print(c);
   }
+  //Convert to json format and extract id
+  DynamicJsonDocument doc(24);
+  deserializeJson(doc, json);
+  int id = doc["id"];
+
+  //write id to EEPROM
+  EEPROM.write(0,id);
+  Serial.print("Written to EEPROM at address 0: ");
+  int eRead = EEPROM.read(0);
+  Serial.print(eRead);
+  client.stop();
+  Serial.println("closing connection");
 }
