@@ -24,7 +24,7 @@
           <%=sensor.id %>
         </td>
         <td scope="row">
-          <%=sensor.cycles %>
+          <%=SensorsInputs.where(sensors_id: sensor.id, inputs_id: 1).length%>
         </td>
         <td scope="row">
           <%=sensor.address %>

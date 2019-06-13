@@ -38,7 +38,7 @@ int status = WL_IDLE_STATUS;
 // if you don't want to use DNS (and reduce your sketch size)
 // use the numeric IP instead of the name for the server:
 //IPAddress server(74,125,232,128);  // numeric IP for Google (no DNS)
-char host[] = "kingkraft.herokuapp.com";    // name address for Google (using DNS)
+char host[] = "breezy-turkey-26.localtunnel.me";    // name address for Google (using DNS)
 
 // Initialize the Ethernet wifi library
 // with the IP address and port of the server
@@ -65,14 +65,21 @@ void setup() {
   WiFiDrv::analogWrite(25, 128);  // for configurable brightness
   WiFiDrv::analogWrite(26, 128);  // for configurable brightness
   WiFiDrv::analogWrite(27, 128);  // for configurable brightness
-  //Call .begin() to configure the IMUs
+
+  int const sensorMax = 1;
+  bool sensors[sensorMax];
+
+  //Accelerometer, id of 1
   if( myIMU.begin() != 0 )
   {
-    Serial.println("Device error");
+    Serial.println("Accel error");
+    sensors[1] = false;
   }
   else
   {
-    Serial.println("Device OK!");
+    Serial.println("Accel OK!");
+    //Accel is enabled
+    sensors[1] = true;
   }
 
   // check for the WiFi module:
@@ -105,7 +112,7 @@ void setup() {
     registerDevice();
   }
   Serial.print("Arduino with id: ");
-  Serial.print(getDeviceId());
+  Serial.print(getSensorId());
   Serial.println(", is initialised");
 
 }
@@ -181,18 +188,48 @@ bool hasValidID() {
   return false;
 }
 
-//REFACTOR, needs to work with more than 255 devices
-int getDeviceId(){
+//Gets sensor id
+int getSensorId(){
   int id;
   EEPROM.get(0,id);
   return id;
 }
 
+
+//Lots of code here thats wildly unneccesary right now, going to keep it
+//for future Harrison to sift useful things from
+/*void addCycle(){
+  Serial.println("Adding cycle");
+  String id = String(getSensorId());
+  DynamicJsonDocument doc(100);
+  //Set sensor id
+  doc["id"] = id;
+  //Now create array
+  int inputLength = 1;
+  String jsonArray[inputLength];
+  for(int i = 0; i < inputLength; i++){
+    jsonArray[i] = "{\"input_id\": 1, \"value\": 1}";
+  }
+  String jsonArrayS = arrayToString(jsonArray,inputLength);
+  //String req = "GET /";
+  jsonPost("{\"id\": "+id+", \"inputs\": ["+jsonArrayS+"]}");
+}*/
+
 void addCycle(){
   Serial.println("Adding cycle");
-  String id = String(getDeviceId());
-  //String req = "GET /";
-  jsonPost("{'id': 12, 'inputs': [{'input_id': 1, 'value': 1}]}");
+  String id = String(getSensorId());
+  DynamicJsonDocument doc(64);
+  //Set sensor id
+  doc["id"] = id;
+  jsonPost("{\"id\": "+id+", \"inputs\": [{\"input_id\": 1, \"value\": 1}]}");
+}
+
+String arrayToString(String array[],int length){
+  String string;
+  for(int i = 0; i < length; i++){
+    string = string + array[i];
+  }
+  return string;
 }
 
 //Registers device with server
