@@ -29,7 +29,6 @@ ActiveRecord::Schema.define(version: 2019_06_13_095637) do
     t.integer "sensors_id"
     t.integer "inputs_id"
     t.float "value"
-    t.time "time"
     t.index ["inputs_id"], name: "index_sensors_inputs_on_inputs_id"
     t.index ["sensors_id"], name: "index_sensors_inputs_on_sensors_id"
   end

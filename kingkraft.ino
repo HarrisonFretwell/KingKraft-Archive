@@ -1,6 +1,6 @@
 
 /*
-Web client
+Web wifi
 
 This sketch connects to a website (http://www.google.com)
 using the WiFi module.
@@ -27,23 +27,24 @@ by Tom Igoe
 #include <ArduinoJson.h>
 #include <utility/wifi_drv.h>
 #include "SparkFunLSM6DS3.h"
+#include <HttpClient.h>
 #include "Wire.h"
 #include "arduino_secrets.h"
 ///////please enter your sensitive data in the Secret tab/arduino_secrets.h
 char ssid[] = SECRET_SSID;        // your network SSID (name)
 char pass[] = SECRET_PASS;    // your network password (use for WPA, or use as key for WEP)
 int keyIndex = 0;            // your network key Index number (needed only for WEP)
-
 int status = WL_IDLE_STATUS;
 // if you don't want to use DNS (and reduce your sketch size)
 // use the numeric IP instead of the name for the server:
 //IPAddress server(74,125,232,128);  // numeric IP for Google (no DNS)
 char host[] = "kingkraft.herokuapp.com";    // name address for Google (using DNS)
 
-// Initialize the Ethernet client library
+// Initialize the Ethernet wifi library
 // with the IP address and port of the server
 // that you want to connect to (port 80 is default for HTTP):
-WiFiClient client;
+WiFiClient wifi;
+HttpClient client = HttpClient(wifi, host, 80);
 LSM6DS3 myIMU( I2C_MODE, 0x6A );
 //DO more with this later
 LSM6DS3 myIMU2(SPI_MODE, SPIIMU_SS);
@@ -117,20 +118,20 @@ void LED(int r, int g, int b){
 void httpRequest(String req) {
   // close any connection before send a new request.
   // This will free the socket on the Nina module
-  client.stop();
+  wifi.stop();
   LED(128,128,0); //Yellow for trying
   // if there's a successful connection:
-  if (client.connect(host, 80)) {
+  if (wifi.connect(host, 80)) {
     Serial.println("connecting...");
     // send the HTTP PUT request:
     LED(0,128,0); //green for success
-    client.print(req);
-    client.println(" HTTP/1.1");
-    client.print("Host: ");
-    client.println(host);
-    client.println("User-Agent: ArduinoWiFi/1.1");
-    client.println("Connection: close");
-    client.println();
+    wifi.print(req);
+    wifi.println(" HTTP/1.1");
+    wifi.print("Host: ");
+    wifi.println(host);
+    wifi.println("User-Agent: ArduinoWiFi/1.1");
+    wifi.println("Connection: close");
+    wifi.println();
 
     // note the time that the connection was made:
   } else {
@@ -138,6 +139,16 @@ void httpRequest(String req) {
     LED(128,0,0); //Red for failure
     Serial.println("connection failed");
   }
+}
+
+void jsonPost(String post){
+  client.beginRequest();
+  client.post("/input");
+  client.sendHeader("Content-Type", "application/json");
+  client.sendHeader("Content-Length", post.length());
+  client.beginBody();
+  client.print(post);
+  client.endRequest();
 }
 //Given magnitude of acceleration, returns whether this counts as a cycle
 bool isCycle(double mag){
@@ -181,15 +192,14 @@ void addCycle(){
   Serial.println("Adding cycle");
   String id = String(getDeviceId());
   //String req = "GET /";
-  String req = "POST /add-cycle?id=" + id;
-  httpRequest(req);
+  jsonPost("{'id': 12, 'inputs': [{'input_id': 1, 'value': 1}]}");
 }
 
 //Registers device with server
 bool registerDevice(){
   httpRequest("GET /register-device");
   unsigned long timeout = millis();
-  while (client.available() == 0) {
+  while (wifi.available() == 0) {
     if (millis() - timeout > 25000) { //Try to fetch response for 25 seconds
       Serial.println(">>> Client Timeout !");
       return false;
@@ -199,8 +209,8 @@ bool registerDevice(){
   // Read all the lines of the reply from server and print them to Serial
   String json;
   bool readingJSON = false;
-  while (client.available()) {
-    char c = client.read();
+  while (wifi.available()) {
+    char c = wifi.read();
     if(c == '{'){
       readingJSON = !readingJSON;
     }
@@ -219,6 +229,6 @@ bool registerDevice(){
 
   //write id to EEPROM
   EEPROM.put(0,id);
-  client.stop();
+  wifi.stop();
   Serial.println("closing connection");
 }

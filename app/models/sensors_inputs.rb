@@ -1,0 +1,2 @@
+class SensorsInputs < ApplicationRecord
+end

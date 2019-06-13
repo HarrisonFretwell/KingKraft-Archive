@@ -1,6 +1,6 @@
 class SensorsController < ApplicationController
   before_action :set_sensor, only: [:show, :edit, :update, :destroy]
-
+  require 'date'
   # GET /sensors
   # GET /sensors.json
   def index
@@ -36,6 +36,35 @@ class SensorsController < ApplicationController
       #If sensor does not exist, add it to table
       sensor = Sensor.new(id: params[:id], cycles: 1)
       sensor.save
+    end
+  end
+  # curl -d "{"id": 12, "inputs": [{"input_id": 1, "value": 1}]}" -H "Content-Type: application/json" -X POST http://localhost:3000/input
+  #JSON := {"id": 12, "inputs": [{"input_id": 1, "value": 1},{"input_id": 1, value: 1}]}
+  # POST /input
+  # Receives JSON input from arduino and parses that input
+  # Format of JSON is as follows
+  ###{id: sensor_id, inputs: [{input_id: input_id1, value: value1},{input_id: input_id2, value: value2},...]}
+  def input
+    #Try and find the sensor the request came from
+    sensor_id = params[:id]
+    sensor_q = Sensor.where(id: sensor_id)
+    if(!sensor_q.exists?)
+      #If sensor doesn't exist, create new sensor
+      sensor = Sensor.new(id: sensor_id)
+      sensor.save
+    end
+    inputs = params[:inputs]
+    #Iterate through all inputs received and save them in sensors_inputs
+    inputs.each do |input|
+      input_id = input[:input_id]
+      #Check if input exists
+      if(Input.where(input_id: input_id).exists?)
+        #sql = "INSERT INTO sensors_inputs VALUES(#{sensor_id},#{input_id},#{input[:value]})"
+        #ActiveRecord::Base.connection.execute(sql)
+        SensorsInputs.new(sensors_id: sensor_id, inputs_id: input_id, value: input[:value]).save
+      else
+        puts "WARNING, tried to write to input id that doesnt exist. Input id: #{input_id}"
+      end
     end
   end
 

@@ -24,7 +24,7 @@ class InputsController < ApplicationController
   # POST /inputs
   # POST /inputs.json
   def create
-    @input = Input.new(input_params)
+    @input = Input.new(input_id: 1, primary_key: 2,name: 'test')
 
     respond_to do |format|
       if @input.save
