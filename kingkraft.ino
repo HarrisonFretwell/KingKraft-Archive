@@ -38,7 +38,7 @@ int status = WL_IDLE_STATUS;
 // if you don't want to use DNS (and reduce your sketch size)
 // use the numeric IP instead of the name for the server:
 //IPAddress server(74,125,232,128);  // numeric IP for Google (no DNS)
-char host[] = "breezy-turkey-26.localtunnel.me";    // name address for Google (using DNS)
+char host[] = "kingkraft.herokuapp.com";    // name address for Google (using DNS)
 
 // Initialize the Ethernet wifi library
 // with the IP address and port of the server
@@ -149,6 +149,7 @@ void httpRequest(String req) {
 }
 
 void jsonPost(String post){
+  LED(128,128,0);
   client.beginRequest();
   client.post("/input");
   client.sendHeader("Content-Type", "application/json");
@@ -156,6 +157,7 @@ void jsonPost(String post){
   client.beginBody();
   client.print(post);
   client.endRequest();
+  LED(0,128,0);
 }
 //Given magnitude of acceleration, returns whether this counts as a cycle
 bool isCycle(double mag){

@@ -59,10 +59,10 @@ class SensorsController < ApplicationController
     inputs.each do |input|
       input_id = input[:input_id]
       #Check if input exists
-      if(Input.where(input_id: input_id).exists?)
+      if(Input.where(id: input_id).exists?)
         #sql = "INSERT INTO sensors_inputs VALUES(#{sensor_id},#{input_id},#{input[:value]})"
         #ActiveRecord::Base.connection.execute(sql)
-        SensorsInputs.new(sensors_id: sensor_id, inputs_id: input_id, value: input[:value]).save
+        SensorsInputs.new(sensor_id: sensor_id, input_id: input_id, value: input[:value]).save
       else
         puts "WARNING, tried to write to input id that doesnt exist. Input id: #{input_id}"
       end

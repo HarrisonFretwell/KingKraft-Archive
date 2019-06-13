@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_06_13_095637) do
+ActiveRecord::Schema.define(version: 2019_06_13_150935) do
 
   create_table "inputs", force: :cascade do |t|
     t.integer "input_id"
@@ -26,11 +26,11 @@ ActiveRecord::Schema.define(version: 2019_06_13_095637) do
   end
 
   create_table "sensors_inputs", force: :cascade do |t|
-    t.integer "sensors_id"
-    t.integer "inputs_id"
+    t.integer "sensor_id"
+    t.integer "input_id"
     t.float "value"
-    t.index ["inputs_id"], name: "index_sensors_inputs_on_inputs_id"
-    t.index ["sensors_id"], name: "index_sensors_inputs_on_sensors_id"
+    t.index ["input_id"], name: "index_sensors_inputs_on_input_id"
+    t.index ["sensor_id"], name: "index_sensors_inputs_on_sensor_id"
   end
 
   create_table "users", force: :cascade do |t|

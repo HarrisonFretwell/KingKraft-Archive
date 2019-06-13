@@ -10,14 +10,35 @@
   </thead>
 
   <tbody>
-    <% @inputs.each do |input| %>
-      <tr>
-        <td><%= link_to 'Show', input %></td>
-        <td><%= link_to 'Edit', edit_input_path(input) %></td>
-        <td><%= link_to 'Destroy', input, method: :delete, data: { confirm: 'Are you sure?' } %></td>
-      </tr>
-    <% end %>
-  </tbody>
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th scope="col">
+            Id
+          </th>
+          <th scope="col">
+            Name
+          </th>
+          <th scope="col">
+            Destroy
+          </th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <% @inputs.each do |input| %>
+          <tr>
+            <td scope="row">
+              <%=input.id %>
+            </td>
+            <td scope="row">
+              <%=input.name%>
+            </td>
+            <td scope="row"><%= link_to 'Destroy', input, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
 </table>
 
 <br>
