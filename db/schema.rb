@@ -10,13 +10,28 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_06_13_091654) do
+ActiveRecord::Schema.define(version: 2019_06_13_095637) do
+
+  create_table "inputs", force: :cascade do |t|
+    t.integer "input_id"
+    t.integer "primary_key"
+    t.string "name", null: false
+  end
 
   create_table "sensors", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "cycles"
     t.text "address"
+  end
+
+  create_table "sensors_inputs", force: :cascade do |t|
+    t.integer "sensors_id"
+    t.integer "inputs_id"
+    t.float "value"
+    t.time "time"
+    t.index ["inputs_id"], name: "index_sensors_inputs_on_inputs_id"
+    t.index ["sensors_id"], name: "index_sensors_inputs_on_sensors_id"
   end
 
   create_table "users", force: :cascade do |t|
