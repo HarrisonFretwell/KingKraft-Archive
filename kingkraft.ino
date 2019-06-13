@@ -25,7 +25,7 @@ by Tom Igoe
 #include <WiFiNINA.h>
 #include <EEPROM.h>
 #include <ArduinoJson.h>
-
+#include <utility/wifi_drv.h>
 #include "SparkFunLSM6DS3.h"
 #include "Wire.h"
 #include "arduino_secrets.h"
@@ -38,7 +38,7 @@ int status = WL_IDLE_STATUS;
 // if you don't want to use DNS (and reduce your sketch size)
 // use the numeric IP instead of the name for the server:
 //IPAddress server(74,125,232,128);  // numeric IP for Google (no DNS)
-char host[] = "brave-fox-41.localtunnel.me";    // name address for Google (using DNS)
+char host[] = "kingkraft.herokuapp.com";    // name address for Google (using DNS)
 
 // Initialize the Ethernet client library
 // with the IP address and port of the server
@@ -58,6 +58,12 @@ void setup() {
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
+  WiFiDrv::pinMode(25, OUTPUT);  //GREEN
+  WiFiDrv::pinMode(26, OUTPUT);  //RED
+  WiFiDrv::pinMode(27, OUTPUT);  //BLUE
+  WiFiDrv::analogWrite(25, 128);  // for configurable brightness
+  WiFiDrv::analogWrite(26, 128);  // for configurable brightness
+  WiFiDrv::analogWrite(27, 128);  // for configurable brightness
   //Call .begin() to configure the IMUs
   if( myIMU.begin() != 0 )
   {
@@ -102,17 +108,22 @@ void setup() {
   Serial.println(", is initialised");
 
 }
+void LED(int r, int g, int b){
+  WiFiDrv::analogWrite(25, r);  // green
+  WiFiDrv::analogWrite(26, g);  // red
+  WiFiDrv::analogWrite(27, b);  // blue
+}
 // this method makes a HTTP connection to the server:
 void httpRequest(String req) {
   // close any connection before send a new request.
   // This will free the socket on the Nina module
   client.stop();
-
+  LED(128,128,0); //Yellow for trying
   // if there's a successful connection:
   if (client.connect(host, 80)) {
     Serial.println("connecting...");
     // send the HTTP PUT request:
-
+    LED(0,128,0); //green for success
     client.print(req);
     client.println(" HTTP/1.1");
     client.print("Host: ");
@@ -124,17 +135,18 @@ void httpRequest(String req) {
     // note the time that the connection was made:
   } else {
     // if you couldn't make a connection:
+    LED(128,0,0); //Red for failure
     Serial.println("connection failed");
   }
 }
-
+//Given magnitude of acceleration, returns whether this counts as a cycle
 bool isCycle(double mag){
   return(sqrt(pow(1.0 - mag,2)) > 0.4);
 }
+
 double x;
 double y;
 double z;
-const double maxError = 0.2;
 void loop() {
   x = myIMU.readFloatAccelX();
   y = myIMU.readFloatAccelY();
@@ -143,7 +155,8 @@ void loop() {
   if(isCycle(mag)){
     Serial.println("Registering cycle");
     addCycle();
-    delay(3000);
+    delay(10000);
+    LED(0,0,128); //Resting state
   }
 }
 

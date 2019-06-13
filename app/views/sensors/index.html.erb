@@ -23,6 +23,9 @@
         <td scope="row">
           <%=sensor.cycles %>
         </td>
+        <td scope="row">
+          <%=sensor.address %>
+        </td>
         <td scope="row"><%= link_to 'Destroy', sensor, method: :delete, data: { confirm: 'Are you sure?' } %></td>
       </tr>
     <% end %>
