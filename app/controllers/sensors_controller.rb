@@ -60,9 +60,8 @@ class SensorsController < ApplicationController
       input_id = input[:input_id]
       #Check if input exists
       if(Input.where(id: input_id).exists?)
-        #sql = "INSERT INTO sensors_inputs VALUES(#{sensor_id},#{input_id},#{input[:value]})"
-        #ActiveRecord::Base.connection.execute(sql)
-        SensorsInputs.new(sensor_id: sensor_id, input_id: input_id, value: input[:value]).save
+        puts "fire"
+        SensorsInputs.new(sensor_id: sensor_id, input_id: input_id, value: input[:value], time: Time.current).save
       else
         puts "WARNING, tried to write to input id that doesnt exist. Input id: #{input_id}"
       end
