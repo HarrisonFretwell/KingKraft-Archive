@@ -35,6 +35,36 @@
   </tbody>
 </table>
 
+
+
+<table class="table table-hover">
+  <thead>
+    <tr>
+      <th scope="col">
+        Id
+      </th>
+      <th scope="col">
+        Cycles
+      </th>
+      <th scope="col">
+        Address
+      </th>
+    </tr>
+  </thead>
+  
+  <tbody>
+    <% @sensors.where(id: 13).first.get_24.each do |row| %>
+      <tr>
+        <td scope="row">
+          <%=row.id %>
+        </td>
+        <td scope="row">
+          <%=row.value%>
+        </td>
+    <% end %>
+  </tbody>
+</table>
+
 <br>
 
 <%= link_to 'New Sensor', new_sensor_path %>

@@ -25,11 +25,12 @@ by Tom Igoe
 #include <WiFiNINA.h>
 #include <EEPROM.h>
 #include <ArduinoJson.h>
-#include <utility/wifi_drv.h>
 #include "SparkFunLSM6DS3.h"
-#include <HttpClient.h>
+#include <Ultrasonic.h>
 #include "Wire.h"
 #include "arduino_secrets.h"
+
+
 ///////please enter your sensitive data in the Secret tab/arduino_secrets.h
 char ssid[] = SECRET_SSID;        // your network SSID (name)
 char pass[] = SECRET_PASS;    // your network password (use for WPA, or use as key for WEP)
@@ -38,33 +39,58 @@ int status = WL_IDLE_STATUS;
 // if you don't want to use DNS (and reduce your sketch size)
 // use the numeric IP instead of the name for the server:
 //IPAddress server(74,125,232,128);  // numeric IP for Google (no DNS)
-char host[] = "wet-pig-87.localtunnel.me";    // name address for Google (using DNS)
+char server[] = "kingkraft.herokuapp.com";    // name address for Google (using DNS)
 
 // Initialize the Ethernet wifi library
 // with the IP address and port of the server
 // that you want to connect to (port 80 is default for HTTP):
-WiFiClient wifi;
-HttpClient client = HttpClient(wifi, host, 80);
+WiFiClient client;
 LSM6DS3 myIMU( I2C_MODE, 0x6A );
 //DO more with this later
 LSM6DS3 myIMU2(SPI_MODE, SPIIMU_SS);
+unsigned long lastReading = 0;            // last time you connected to the server, in milliseconds
+const unsigned long postingInterval = 5L * 1000L; // delay between updates, in milliseconds
+// defines pins numbers
+const int trigPin = 9;
+const int echoPin = 10;
+// defines variables
+long duration;
+int distance;
+
 void resetEEPROM(){
   for(int i = 0; i < 100; i++){
     EEPROM.update(i,255);
   }
 }
+double Round(double x, int p)
+{
+  if (x != 0.0) {
+    return ((floor((fabs(x)*pow(double(10.0),p))+0.5))/pow(double(10.0),p))*(x/fabs(x));
+  } else {
+    return 0.0;
+  }
+}
+double getUS(){
+  // Clears the trigPin
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  // Sets the trigPin on HIGH state for 10 micro seconds
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  // Reads the echoPin, returns the sound wave travel time in microseconds
+  duration = pulseIn(echoPin, HIGH);
+  // Calculating the distance
+  return duration*0.034/2;
+}
 void setup() {
+  pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
+  pinMode(echoPin, INPUT); // Sets the echoPin as an Input
   //Initialize serial and wait for port to open:
   Serial.begin(9600);
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
-  WiFiDrv::pinMode(25, OUTPUT);  //GREEN
-  WiFiDrv::pinMode(26, OUTPUT);  //RED
-  WiFiDrv::pinMode(27, OUTPUT);  //BLUE
-  WiFiDrv::analogWrite(25, 128);  // for configurable brightness
-  WiFiDrv::analogWrite(26, 128);  // for configurable brightness
-  WiFiDrv::analogWrite(27, 128);  // for configurable brightness
 
   int const sensorMax = 1;
   bool sensors[sensorMax];
@@ -116,68 +142,142 @@ void setup() {
   Serial.println(", is initialised");
 
 }
-void LED(int r, int g, int b){
-  WiFiDrv::analogWrite(25, r);  // green
-  WiFiDrv::analogWrite(26, g);  // red
-  WiFiDrv::analogWrite(27, b);  // blue
-}
 // this method makes a HTTP connection to the server:
 void httpRequest(String req) {
   // close any connection before send a new request.
   // This will free the socket on the Nina module
-  wifi.stop();
-  LED(128,128,0); //Yellow for trying
+  client.stop();
   // if there's a successful connection:
-  if (wifi.connect(host, 80)) {
+  if (client.connect(server, 80)) {
     Serial.println("connecting...");
     // send the HTTP PUT request:
-    LED(0,128,0); //green for success
-    wifi.print(req);
-    wifi.println(" HTTP/1.1");
-    wifi.print("Host: ");
-    wifi.println(host);
-    wifi.println("User-Agent: ArduinoWiFi/1.1");
-    wifi.println("Connection: close");
-    wifi.println();
+    client.print(req);
+    client.println(" HTTP/1.1");
+    client.print("Host: ");
+    client.println(server);
+    client.println("User-Agent: Arduinowifi/1.1");
+    client.println("Connection: close");
+    client.println();
 
     // note the time that the connection was made:
   } else {
     // if you couldn't make a connection:
-    LED(128,0,0); //Red for failure
     Serial.println("connection failed");
   }
 }
-
-void jsonPost(String post){
-  LED(128,128,0);
-  client.beginRequest();
-  client.post("/input");
-  client.sendHeader("Content-Type", "application/json");
-  client.sendHeader("Content-Length", post.length());
-  client.beginBody();
-  client.print(post);
-  client.endRequest();
-  LED(0,128,0);
-}
 //Given magnitude of acceleration, returns whether this counts as a cycle
 bool isCycle(double mag){
-  return(sqrt(pow(1.0 - mag,2)) > 0.4);
+  return(abs(1.0 - mag) > 0.01);
 }
+double getMag(){
+  double x = myIMU.readFloatAccelX();
+  double y = myIMU.readFloatAccelY();
+  double z = myIMU.readFloatAccelZ();
+  return sqrt(pow(x,2) + pow(y,2) + pow(z,2));
+}
+//Main program loop
+struct magUS {
+  double mag;
+  double us;
+};
+void postHttp(String data) {
+  // close any connection before send a new request.
+  // This will free the socket on the Nina module
+  client.stop();
+  // if there's a successful connection:
+  if (client.connect(server, 80)) {
+    Serial.println("connecting...");
+    // send the HTTP PUT request:
+    client.println("POST /input HTTP/1.1");
+    client.print("Host:");
+    client.println(server);
+    client.println("User-Agent: ArduinoWiFi/1.1");
+    client.println("Content-type: application/json");
+    client.print("Content-length: ");
+    client.println(data.length());
+    client.println("Connection: close");
+    client.println();
+    client.println(data);
 
-double x;
-double y;
-double z;
-void loop() {
-  x = myIMU.readFloatAccelX();
-  y = myIMU.readFloatAccelY();
-  z = myIMU.readFloatAccelZ();
-  double mag = sqrt(pow(x,2) + pow(y,2) + pow(z,2));
-  if(isCycle(mag)){
-    Serial.println("Registering cycle");
-    addCycle();
-    delay(10000);
-    LED(0,0,128); //Resting state
+  } else {
+    // if you couldn't make a connection:
+    Serial.println("connection failed");
   }
+}
+//Max recording in seconds
+const int maxRecordingTime = 5;
+magUS data[maxRecordingTime * 10];
+magUS dataNode = {};
+StaticJsonDocument<1000> doc;
+int lastCycle = 0;
+void loop() {
+  while (client.available()) {
+    char c = client.read();
+    Serial.write(c);
+  }
+  // if ten seconds have passed since your last connection,
+  // then connect again and send data:
+  if(((millis() - lastReading) > postingInterval) && isCycle(getMag())){
+    Serial.println("Mag exceeded");
+    unsigned long startTime = millis();
+    bool moving = true;
+    int i = 0;
+    int lastTime = 0;
+    while(moving && i < 15){
+      //take readings every 0.1 seconds
+      if((millis() - lastTime) > 500){
+        //Get sensor values
+        dataNode.mag = getMag();
+        dataNode.us = getUS();
+        //If still moving, add to array
+        if(i == 0){
+          moving = true;
+        }
+        else{
+          moving = fabs((dataNode.us - data[i-1].us) > 0.1);
+        }
+        if(moving){
+          data[i] = dataNode;
+          i++;
+        }
+        lastTime = millis();
+      }
+    }
+    if(i > 1){
+      lastReading = millis();
+      //Create JSON array
+      JsonArray jsonArray = doc.createNestedArray("inputs");
+      doc["id"] = getSensorId();
+      //definitely needs refactoring
+      for(int j = 0; j < i; j++){
+        JsonObject input = jsonArray.createNestedObject();
+        input["input_id"] = 1;
+        input["value"] = Round(data[j].mag,2);
+        input = jsonArray.createNestedObject();
+        input["input_id"] = 2;
+        input["value"] = Round(data[j].us,2);
+      }
+
+
+      String data = "";
+      serializeJson(doc, data);
+      Serial.println(data);
+      postHttp(data);
+      doc.clear();
+      client.stop();
+      /*
+      client.post("/input", "application/json", postData.c_str());
+      Serial.println("Gone");
+      doc.clear();
+      lastCycle = millis();
+
+
+    }
+    else{
+    Serial.println("Nah");
+  }*/
+}
+}
 }
 
 // Checks if a unique ID is already stored in EEPROM
@@ -197,59 +297,15 @@ int getSensorId(){
   return id;
 }
 
-
-//Lots of code here thats wildly unneccesary right now, going to keep it
-//for future Harrison to sift useful things from
-/*void addCycle(){
-  Serial.println("Adding cycle");
-  String id = String(getSensorId());
-  DynamicJsonDocument doc(100);
-  //Set sensor id
-  doc["id"] = id;
-  //Now create array
-  int inputLength = 1;
-  String jsonArray[inputLength];
-  for(int i = 0; i < inputLength; i++){
-    jsonArray[i] = "{\"input_id\": 1, \"value\": 1}";
-  }
-  String jsonArrayS = arrayToString(jsonArray,inputLength);
-  //String req = "GET /";
-  jsonPost("{\"id\": "+id+", \"inputs\": ["+jsonArrayS+"]}");
-}*/
-
-void addCycle(){
-  Serial.println("Adding cycle");
-  String id = String(getSensorId());
-  DynamicJsonDocument doc(64);
-  //Set sensor id
-  doc["id"] = id;
-  jsonPost("{\"id\": "+id+", \"inputs\": [{\"input_id\": 1, \"value\": 1}]}");
-}
-
-String arrayToString(String array[],int length){
-  String string;
-  for(int i = 0; i < length; i++){
-    string = string + array[i];
-  }
-  return string;
-}
-
 //Registers device with server
 bool registerDevice(){
   httpRequest("GET /register-device");
-  unsigned long timeout = millis();
-  while (wifi.available() == 0) {
-    if (millis() - timeout > 25000) { //Try to fetch response for 25 seconds
-      Serial.println(">>> Client Timeout !");
-      return false;
-    }
-  }
 
   // Read all the lines of the reply from server and print them to Serial
   String json;
   bool readingJSON = false;
-  while (wifi.available()) {
-    char c = wifi.read();
+  while (client.available()) {
+    char c = client.read();
     if(c == '{'){
       readingJSON = !readingJSON;
     }
@@ -268,6 +324,6 @@ bool registerDevice(){
 
   //write id to EEPROM
   EEPROM.put(0,id);
-  wifi.stop();
+  client.stop();
   Serial.println("closing connection");
 }
