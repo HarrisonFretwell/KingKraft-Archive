@@ -5,7 +5,7 @@
 #
 #   movies = Movie.create([{ name: 'Star Wars' }, { name: 'Lord of the Rings' }])
 #   Character.create(name: 'Luke', movie: movies.first)
-inputs.create(id: 1, name: 'Accelerometer');
-inputs.create(id: 2, name: 'Ultrasound');
-inputs.create(id: 3, name: 'Pressure');
-inputs.create(id: 4, name: 'GPS');
+Input.new(id: 1, name: 'Accelerometer').save!;
+Input.new(id: 2, name: 'Ultrasound').save!;
+Input.new(id: 3, name: 'Pressure').save!;
+Input.new(id: 4, name: 'GPS').save!;

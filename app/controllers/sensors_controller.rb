@@ -1,5 +1,5 @@
 class SensorsController < ApplicationController
-  before_action :set_sensor, only: [:show, :edit, :update, :destroy]
+  before_action :set_sensor, only: [:show, :edit, :update, :destroy, :bed]
   require 'date'
   # GET /sensors
   # GET /sensors.json
@@ -39,8 +39,7 @@ class SensorsController < ApplicationController
       sensor.save
     end
   end
-  # curl -d "{"id": 12, "inputs": [{"input_id": 1, "value": 1}]}" -H "Content-Type: application/json" -X POST http://localhost:3000/input
-  #JSON := {"id": 12, "inputs": [{"input_id": 1, "value": 1},{"input_id": 1, value: 1}]}
+  
   # POST /input
   # Receives JSON input from arduino and parses that input
   # Format of JSON is as follows
@@ -114,6 +113,10 @@ class SensorsController < ApplicationController
       format.html { redirect_to sensors_url, notice: 'Sensor was successfully destroyed.' }
       format.json { head :no_content }
     end
+  end
+
+  def bed
+
   end
 
   private

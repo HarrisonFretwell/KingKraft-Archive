@@ -19,51 +19,25 @@
 
   <tbody>
     <% @sensors.each do |sensor| %>
-      <tr>
-        <td scope="row">
-          <%=sensor.id %>
-        </td>
-        <td scope="row">
-          <%=SensorsInputs.where(sensor_id: sensor.id, input_id: 1).length%>
-        </td>
-        <td scope="row">
-          <%=sensor.address %>
-        </td>
-        <td scope="row"><%= link_to 'Destroy', sensor, method: :delete, data: { confirm: 'Are you sure?' } %></td>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
-
-
-
-<table class="table table-hover">
-  <thead>
     <tr>
-      <th scope="col">
-        Id
-      </th>
-      <th scope="col">
-        Cycles
-      </th>
-      <th scope="col">
-        Address
-      </th>
+      <td scope="row">
+        <%=sensor.id %>
+      </td>
+      <td scope="row">
+        <%=SensorsInputs.where(sensor_id: sensor.id, input_id: 1).length%>
+      </td>
+      <td scope="row">
+        <%=sensor.address %>
+      </td>
+      <td scope ="row">
+        <%= link_to 'Show', sensor, class: 'btn btn-success' %>
+      </td>
+      <td scope="row"><%= link_to 'Destroy', sensor, method: :delete, data: { confirm: 'Are you sure?' } %></td>
     </tr>
-  </thead>
-  
-  <tbody>
-    <% @sensors.where(id: 13).first.get_24.each do |row| %>
-      <tr>
-        <td scope="row">
-          <%=row.id %>
-        </td>
-        <td scope="row">
-          <%=row.value%>
-        </td>
     <% end %>
   </tbody>
 </table>
+
 
 <br>
 

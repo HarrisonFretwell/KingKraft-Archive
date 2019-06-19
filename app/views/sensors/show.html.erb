@@ -1,4 +1,8 @@
-<p id="notice"><%= notice %></p>
-
-<%= link_to 'Edit', edit_sensor_path(@sensor) %> |
+<% if @sensor.current_status == 1%>
+  <span class="label label-success">Occupied</span>
+<% else%>
+  <span class="label label-warning">Unoccupied</span>
+<% end%>
+<br />
+<%= line_chart @sensor.get_bed_data(14.hours), points: false %>
 <%= link_to 'Back', sensors_path %>
